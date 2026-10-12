@@ -89,8 +89,6 @@ To pause it without removing it, toggle the server off in Cursor's MCP settings.
 
 ## Tested versions
 
-TODO: record Cursor / Node / Ship Safe versions after a real smoke test.
-
 | Cursor surface | Cursor version | Node.js version | Ship Safe version | OS | Result |
 | --- | --- | --- | --- | --- | --- |
-| IDE | TODO | TODO | TODO | TODO | TODO |
+| IDE | 3.24.12 | 22.23.1 | 11.0.0 | Windows | `ship_safe_status` returned `state: available`, `protected: false` via project `.cursor/mcp.json`; 7 tools listed |
