@@ -19,7 +19,7 @@ Cursor reads MCP servers from two locations:
 - **Project:** `.cursor/mcp.json` in the repository root. Applies only to that project.
 - **User:** `~/.cursor/mcp.json` in your home directory. Applies to every project you open.
 
-Prefer the project configuration. Ship Safe's MCP server only accepts paths inside its working directory (the MCP workspace), so it should start from the repository you want to scan. Pin the package version so the server does not change between sessions.
+Prefer the project configuration and deliberately select the repository you want to scan. Relative tool paths resolve from the server's working directory (the MCP workspace). Current read tools are not uniformly confined to that directory; the workspace checks on suppression writes and scan report output do not establish read isolation. Review every requested path. Pin the package version so the server does not change between sessions.
 
 ### Project configuration (recommended)
 
@@ -37,13 +37,13 @@ Prefer the project configuration. Ship Safe's MCP server only accepts paths insi
 }
 ```
 
-Replace `11.0.0` with the Ship Safe version you have reviewed. Pass paths inside the project to tools (for example `"."` or `"src"`); paths outside the server's working directory are rejected.
+Replace `11.0.0` with the Ship Safe version you have reviewed. Pass an explicitly reviewed project path to tools. Use relative paths such as `"."` or `"src"` only after checking which directory the server uses. Project configuration is not a filesystem sandbox.
 
 ### User configuration
 
-`~/.cursor/mcp.json` uses the same format. Because one user-level server is shared across projects, its working directory may not match the project you have open. If tools return `Path must stay within the MCP workspace`, use the project configuration instead.
+`~/.cursor/mcp.json` uses the same format. A user-level configuration applies across projects, so do not assume the server's working directory matches the project you have open.
 
-Cursor's `mcp.json` has no documented `cwd` field. Which directory Cursor uses as the server's working directory is not verified in this guide; confirm it with `ship_safe_status` and a small scan before relying on it.
+Which directory Cursor uses as the server's working directory is not verified in this guide. `ship_safe_status` does not return a working directory or workspace root. Inspect the client launch configuration and logs, then use a small, non-sensitive fixture with a known marker and review the paths returned by a scan. This checks path resolution, not filesystem isolation. Do not rely on relative paths until you have confirmed their resolution.
 
 ### Credentials
 
@@ -56,7 +56,7 @@ Ship Safe's MCP server does not need API keys to run. Do not add `env` or `envFi
 3. In Agent chat, ask: `Call the ship-safe ship_safe_status tool.`
 4. Approve the call. The response should report `state: available` and `protected: false`.
 
-`ship_safe_status` takes no arguments, reads no files, and changes nothing, so it is a safe first call. After that, try a small scoped check such as `get_checklist` or `scan_secrets` with `path: "."`.
+`ship_safe_status` takes no arguments, reads no files, and changes nothing, so it is a safe first call. It confirms tool availability, not workspace selection or confinement. After that, try `get_checklist` (which does not verify path resolution), or `scan_secrets` on an explicitly reviewed, non-sensitive fixture path. Use `path: "."` only after confirming the server's working directory.
 
 Available tools include `scan_repo`, `scan_secrets`, `analyze_file`, `get_findings`, `get_checklist`, `suppress_finding`, and `ship_safe_status`. Note that `suppress_finding` edits files by adding `ship-safe-ignore` comments.
 
@@ -77,7 +77,7 @@ Describe this setup as **Ship Safe available in Cursor**, not as `Protected by S
 - **Server does not appear or shows an error:** open the Output panel, select **MCP Logs**, and check for startup errors.
 - **`npx` not found:** Cursor must find `npx` on its `PATH`. Install Node.js, restart Cursor, or use the full path to `npx` in `command`.
 - **First start is slow or times out:** `npx -y` downloads the package on first use. Run `npx -y ship-safe@11.0.0 --version` in a terminal once, then reload Cursor.
-- **`Path must stay within the MCP workspace`:** the requested path is outside the server's working directory. Use the project configuration and pass a path inside the project.
+- **`Path must stay within the MCP workspace`:** a suppression write or scan report output path failed its workspace check. Confirm the server's working directory and choose a write path inside it. Read tools do not uniformly enforce this boundary, so a successful read does not prove confinement.
 - **Tools missing after a change:** toggle the server off and on, or reload the window.
 
 ## Remove
@@ -92,3 +92,5 @@ To pause it without removing it, toggle the server off in Cursor's MCP settings.
 | Cursor surface | Cursor version | Node.js version | Ship Safe version | OS | Result |
 | --- | --- | --- | --- | --- | --- |
 | IDE | 3.24.12 | 22.23.1 | 11.0.0 | Windows | `ship_safe_status` returned `state: available`, `protected: false` via project `.cursor/mcp.json`; 7 tools listed |
+
+This smoke test establishes availability only. Working-directory selection, read isolation, and lifecycle enforcement were not verified by that result.
